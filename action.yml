@@ -1,0 +1,53 @@
+name: "Connect to Octelium"
+description: "Connect to your Octelium Cluster from Github Action workflows"
+branding:
+  icon: "arrow-right-circle"
+  color: "black"
+inputs:
+  domain:
+    description: "Your Octelium Cluster domain"
+    required: true
+  auth-token:
+    description: "Authentication token"
+  dev:
+    description: "Dev mode"
+  insecure-tls:
+    description: "Insecure TLS mode"
+  wait:
+    description: "Wait in seconds after connecting"
+    default: "4"
+  args:
+    description: "The arguments of the octelium-connect command"
+runs:
+  using: "composite"
+  steps:
+    - name: Install in Linux/MacOS
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+      shell: bash
+      run: |
+        curl -H "User-Agent: octelium-github-actions" -fsSL https://octelium.com/install.sh | bash
+
+    - name: Install in Windows
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        iwr https://octelium.com/install.ps1 -useb | iex
+
+    - name: Run in Linux/MacOS
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+      shell: bash
+      env:
+        OCTELIUM_DOMAIN: ${{ inputs.domain }}
+        OCTELIUM_AUTH_TOKEN: ${{ inputs.auth-token }}
+        OCTELIUM_DEV: ${{ inputs.dev }}
+        OCTELIUM_INSECURE_TLS: ${{ inputs.insecure-tls }}
+        OCTELIUM_LOGOUT: "true"
+      run: |
+        CMD="sudo -E octelium connect --logout"
+        if [ -n "${{ inputs.args }}" ]; then
+          CMD="$CMD ${{ inputs.args }}"
+        fi
+        CMD="$CMD &"
+        echo "Running: $CMD"
+        $CMD
+        sleep ${{ inputs.wait }}
