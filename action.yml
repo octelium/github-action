@@ -76,4 +76,4 @@ runs:
         OCTELIUM_DEV: ${{ inputs.dev }}
         OCTELIUM_INSECURE_TLS: ${{ inputs.insecure-tls }}
       run: |
-        octelium logout
+        sudo -E octelium logout
