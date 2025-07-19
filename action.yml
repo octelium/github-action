@@ -73,6 +73,7 @@ runs:
         if [ -f .octelium_pid.txt ]; then
           PID=$(cat .octelium_pid.txt)
           echo "Killing pid $PID"
+          sleep 1
           if sudo kill -0 "$PID" 2>/dev/null; then
             echo "Killing octelium process..."
             sudo kill "$PID"
