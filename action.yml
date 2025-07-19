@@ -30,19 +30,19 @@ runs:
   using: "composite"
   steps:
     - name: Install in Linux/MacOS
-      if: inputs.command == "connect" && (runner.os == 'Linux' || runner.os == 'macOS')
+      if: inputs.command == 'connect' && (runner.os == 'Linux' || runner.os == 'macOS')
       shell: bash
       run: |
         curl -H "User-Agent: octelium-github-actions" -fsSL https://octelium.com/install.sh | bash
 
     - name: Install in Windows
-      if: inputs.command == "connect" && runner.os == 'Windows'
+      if: inputs.command == 'connect' && runner.os == 'Windows'
       shell: powershell
       run: |
         iwr https://octelium.com/install.ps1 -useb | iex
 
     - name: Run in Linux/MacOS
-      if: inputs.command == "connect" && (runner.os == 'Linux' || runner.os == 'macOS')
+      if: inputs.command == 'connect' && (runner.os == 'Linux' || runner.os == 'macOS')
       shell: bash
       env:
         OCTELIUM_DOMAIN: ${{ inputs.domain }}
@@ -69,7 +69,7 @@ runs:
         sleep ${{ inputs.wait }}
 
     - name: Logout
-      if: inputs.command == "logout"
+      if: inputs.command == 'logout'
       shell: bash
       env:
         OCTELIUM_DOMAIN: ${{ inputs.domain }}
