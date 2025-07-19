@@ -60,7 +60,8 @@ runs:
           CMD="$CMD ${{ inputs.args }}"
         fi
         echo "Running: $CMD"
-        nohup bash -c "$CMD &"
+
+        $CMD &
         echo $! > .octelium_pid.txt
         cat .octelium_pid.txt
         sleep ${{ inputs.wait }}
