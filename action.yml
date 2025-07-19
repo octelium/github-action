@@ -60,5 +60,19 @@ runs:
           CMD="$CMD ${{ inputs.args }}"
         fi
         echo "Running: $CMD"
-        bash -c "$CMD &"
+        nohup bash -c "$CMD &"
+        echo $! > .octelium_pid.txt
         sleep ${{ inputs.wait }}
+    
+    - name: Cleanup and logout
+      if: always()
+      shell: bash
+      run: |
+        if [ -f .octelium_pid.txt ]; then
+          PID=$(cat .octelium_pid.txt)
+          if kill -0 "$PID" 2>/dev/null; then
+            echo "Killing octelium process..."
+            kill "$PID"
+            echo "Sent SIGTEM to octelium process"
+          fi
+        fi
