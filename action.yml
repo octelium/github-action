@@ -70,9 +70,10 @@ runs:
       run: |
         if [ -f .octelium_pid.txt ]; then
           PID=$(cat .octelium_pid.txt)
-          if kill -0 "$PID" 2>/dev/null; then
+          echo "Killing pid $PID"
+          if sudo kill -0 "$PID" 2>/dev/null; then
             echo "Killing octelium process..."
-            kill "$PID"
+            sudo kill "$PID"
             echo "Sent SIGTEM to octelium process"
           fi
         fi
