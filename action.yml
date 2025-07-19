@@ -18,6 +18,10 @@ inputs:
     default: "4"
   args:
     description: "The arguments of the octelium-connect command"
+  assertion-idp:
+    description: "The name of the OIDC assertion IdentityProvider"
+  assertion-aud:
+    description: "Override the assertion audience"
 runs:
   using: "composite"
   steps:
@@ -43,7 +47,15 @@ runs:
         OCTELIUM_INSECURE_TLS: ${{ inputs.insecure-tls }}
         OCTELIUM_LOGOUT: "true"
       run: |
-        CMD="sudo -E octelium connect --logout"
+        CMD="sudo -E octelium connect"
+        if [ -n "${{ inputs.assertion-idp }}" ]; then
+          if [ -n "${{ inputs.assertion-aud }}" ]; then
+            CMD="$CMD --assertion ${{ inputs.assertion-idp }}:github-actions:${{ inputs.assertion-aud }}"
+          else
+            CMD="$CMD --assertion ${{ inputs.assertion-idp }}:github-actions"
+          fi
+        fi
+
         if [ -n "${{ inputs.args }}" ]; then
           CMD="$CMD ${{ inputs.args }}"
         fi
