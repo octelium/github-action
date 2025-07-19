@@ -22,23 +22,27 @@ inputs:
     description: "The name of the OIDC assertion IdentityProvider"
   assertion-aud:
     description: "Override the assertion audience"
+  command:
+    description: "Invoke an Octelium command. By default it connects to the Cluster"
+    required: true
+    default: "connect"
 runs:
   using: "composite"
   steps:
     - name: Install in Linux/MacOS
-      if: runner.os == 'Linux' || runner.os == 'macOS'
+      if: inputs.command == "connect" && (runner.os == 'Linux' || runner.os == 'macOS')
       shell: bash
       run: |
         curl -H "User-Agent: octelium-github-actions" -fsSL https://octelium.com/install.sh | bash
 
     - name: Install in Windows
-      if: runner.os == 'Windows'
+      if: inputs.command == "connect" && runner.os == 'Windows'
       shell: powershell
       run: |
         iwr https://octelium.com/install.ps1 -useb | iex
 
     - name: Run in Linux/MacOS
-      if: runner.os == 'Linux' || runner.os == 'macOS'
+      if: inputs.command == "connect" && (runner.os == 'Linux' || runner.os == 'macOS')
       shell: bash
       env:
         OCTELIUM_DOMAIN: ${{ inputs.domain }}
@@ -63,3 +67,13 @@ runs:
 
         $CMD &
         sleep ${{ inputs.wait }}
+
+    - name: Logout
+      if: inputs.command == "logout"
+      shell: bash
+      env:
+        OCTELIUM_DOMAIN: ${{ inputs.domain }}
+        OCTELIUM_DEV: ${{ inputs.dev }}
+        OCTELIUM_INSECURE_TLS: ${{ inputs.insecure-tls }}
+      run: |
+        octelium logout
