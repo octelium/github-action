@@ -62,6 +62,7 @@ runs:
         echo "Running: $CMD"
         nohup bash -c "$CMD &"
         echo $! > .octelium_pid.txt
+        cat .octelium_pid.txt
         sleep ${{ inputs.wait }}
     
     - name: Cleanup and logout
