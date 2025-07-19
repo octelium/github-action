@@ -62,21 +62,4 @@ runs:
         echo "Running: $CMD"
 
         $CMD &
-        echo $! > .octelium_pid.txt
-        cat .octelium_pid.txt
         sleep ${{ inputs.wait }}
-    
-    - name: Cleanup and logout
-      if: always()
-      shell: bash
-      run: |
-        if [ -f .octelium_pid.txt ]; then
-          PID=$(cat .octelium_pid.txt)
-          echo "Killing pid $PID"
-          sleep 1
-          if sudo kill -0 "$PID" 2>/dev/null; then
-            echo "Killing octelium process..."
-            sudo kill "$PID"
-            echo "Sent SIGTEM to octelium process"
-          fi
-        fi
