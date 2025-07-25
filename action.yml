@@ -51,6 +51,7 @@ runs:
         OCTELIUM_INSECURE_TLS: ${{ inputs.insecure-tls }}
         OCTELIUM_LOGOUT: "true"
       run: |
+        octelium version
         CMD="sudo -E octelium connect"
         if [ -n "${{ inputs.assertion-idp }}" ]; then
           if [ -n "${{ inputs.assertion-aud }}" ]; then
@@ -76,4 +77,4 @@ runs:
         OCTELIUM_DEV: ${{ inputs.dev }}
         OCTELIUM_INSECURE_TLS: ${{ inputs.insecure-tls }}
       run: |
-        sudo -E octelium logout
+        octelium logout
