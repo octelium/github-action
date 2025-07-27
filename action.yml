@@ -1,7 +1,7 @@
-name: "Connect to Octelium"
-description: "Connect to your Octelium Cluster from Github Action workflows"
+name: "Octelium"
+description: "Connect to Octelium Clusters from Github Action workflows"
 branding:
-  icon: "arrow-right-circle"
+  icon: "check"
   color: "black"
 inputs:
   domain:
