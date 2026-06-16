@@ -5,10 +5,10 @@ branding:
   color: "black"
 inputs:
   domain:
-    description: "Your Octelium Cluster domain"
+    description: "Octelium Cluster domain"
     required: true
   auth-token:
-    description: "Authentication token"
+    description: "Authentication token. If set, it is used instead of the GitHub Actions OIDC assertion."
   dev:
     description: "Dev mode"
   insecure-tls:
@@ -17,11 +17,9 @@ inputs:
     description: "Wait in seconds after connecting"
     default: "4"
   args:
-    description: "The arguments of the octelium-connect command"
-  assertion-idp:
-    description: "The name of the OIDC assertion IdentityProvider"
-  assertion-aud:
-    description: "Override the assertion audience"
+    description: "The arguments of the octelium-connect command (whitespace separated)"
+  audience:
+    description: "Override the audience of the GitHub Actions OIDC assertion"
   command:
     description: "Invoke an Octelium command. By default it connects to the Cluster"
     required: true
@@ -33,6 +31,7 @@ runs:
       if: inputs.command == 'connect' && (runner.os == 'Linux' || runner.os == 'macOS')
       shell: bash
       run: |
+        set -euo pipefail
         curl -H "User-Agent: octelium-github-actions" -fsSL https://octelium.com/install.sh | bash
         octelium version
 
@@ -40,8 +39,9 @@ runs:
       if: inputs.command == 'connect' && runner.os == 'Windows'
       shell: powershell
       run: |
+        $ErrorActionPreference = "Stop"
         iwr https://octelium.com/install.ps1 -useb | iex
-
+        octelium version
 
     - name: Run in Linux/MacOS
       if: inputs.command == 'connect' && (runner.os == 'Linux' || runner.os == 'macOS')
@@ -52,23 +52,79 @@ runs:
         OCTELIUM_DEV: ${{ inputs.dev }}
         OCTELIUM_INSECURE_TLS: ${{ inputs.insecure-tls }}
         OCTELIUM_LOGOUT: "true"
+        AUDIENCE: ${{ inputs.audience }}
+        EXTRA_ARGS: ${{ inputs.args }}
+        WAIT: ${{ inputs.wait }}
       run: |
-        CMD="sudo -E octelium connect"
-        if [ -n "${{ inputs.assertion-idp }}" ]; then
-          if [ -n "${{ inputs.assertion-aud }}" ]; then
-            CMD="$CMD --assertion ${{ inputs.assertion-idp }}:github-actions:${{ inputs.assertion-aud }}"
+        set -euo pipefail
+
+        cmd=(sudo -E octelium connect)
+
+        if [ -z "$OCTELIUM_AUTH_TOKEN" ]; then
+          if [ -n "$AUDIENCE" ]; then
+            cmd+=(--assertion "github-actions:audience=${AUDIENCE}")
           else
-            CMD="$CMD --assertion ${{ inputs.assertion-idp }}:github-actions"
+            cmd+=(--assertion github-actions)
           fi
         fi
 
-        if [ -n "${{ inputs.args }}" ]; then
-          CMD="$CMD ${{ inputs.args }}"
+        if [ -n "$EXTRA_ARGS" ]; then
+          set -f
+          cmd+=($EXTRA_ARGS)
+          set +f
         fi
-        echo "Running: $CMD"
 
-        $CMD &
-        sleep ${{ inputs.wait }}
+        echo "Running: ${cmd[*]}"
+
+        "${cmd[@]}" &
+        CONNECT_PID=$!
+
+        sleep "$WAIT"
+
+        if ! kill -0 "$CONNECT_PID" 2>/dev/null; then
+          echo "::error::octelium connect exited before it became ready"
+          wait "$CONNECT_PID" || true
+          exit 1
+        fi
+
+    - name: Run in Windows
+      if: inputs.command == 'connect' && runner.os == 'Windows'
+      shell: powershell
+      env:
+        OCTELIUM_DOMAIN: ${{ inputs.domain }}
+        OCTELIUM_AUTH_TOKEN: ${{ inputs.auth-token }}
+        OCTELIUM_DEV: ${{ inputs.dev }}
+        OCTELIUM_INSECURE_TLS: ${{ inputs.insecure-tls }}
+        OCTELIUM_LOGOUT: "true"
+        AUDIENCE: ${{ inputs.audience }}
+        EXTRA_ARGS: ${{ inputs.args }}
+        WAIT: ${{ inputs.wait }}
+      run: |
+        $ErrorActionPreference = "Stop"
+
+        $cliArgs = @("connect")
+
+        if (-not $env:OCTELIUM_AUTH_TOKEN) {
+          if ($env:AUDIENCE) {
+            $cliArgs += @("--assertion", "github-actions:audience=$($env:AUDIENCE)")
+          } else {
+            $cliArgs += @("--assertion", "github-actions")
+          }
+        }
+
+        if ($env:EXTRA_ARGS) {
+          $cliArgs += $env:EXTRA_ARGS.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries)
+        }
+
+        Write-Host "Running: octelium $($cliArgs -join ' ')"
+
+        $proc = Start-Process -FilePath "octelium" -ArgumentList $cliArgs -PassThru -NoNewWindow
+        Start-Sleep -Seconds ([int]$env:WAIT)
+
+        if ($proc.HasExited) {
+          Write-Error "octelium connect exited before it became ready (exit code $($proc.ExitCode))"
+          exit 1
+        }
 
     - name: Logout
       if: inputs.command == 'logout'
@@ -78,4 +134,10 @@ runs:
         OCTELIUM_DEV: ${{ inputs.dev }}
         OCTELIUM_INSECURE_TLS: ${{ inputs.insecure-tls }}
       run: |
+        set -euo pipefail
+
+        if ! command -v octelium >/dev/null 2>&1; then
+          curl -H "User-Agent: octelium-github-actions" -fsSL https://octelium.com/install.sh | bash
+        fi
+
         octelium logout
